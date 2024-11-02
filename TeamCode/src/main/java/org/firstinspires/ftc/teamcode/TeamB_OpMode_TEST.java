@@ -17,7 +17,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @TeleOp
-// test
+
 public class TeamB_OpMode_TEST extends LinearOpMode {
 
     // tim stuff idk
