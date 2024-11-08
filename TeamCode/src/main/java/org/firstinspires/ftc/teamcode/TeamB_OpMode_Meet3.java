@@ -22,11 +22,12 @@ public class TeamB_OpMode_Meet3 extends LinearOpMode {
 
     // tim stuff idk
     public enum State {
+        IDLE,
         INTAKE,
+        CONVERT,
         LIFT,
         OUTTAKE,
     }
-
     State state = State.INTAKE;
 
     // time variables??? copied from tim... hee hee haa haa
@@ -36,7 +37,9 @@ public class TeamB_OpMode_Meet3 extends LinearOpMode {
     int preintake = 0;
     int adjustment = 1;
     int specimen = 2;
-    int hang = 3;
+    int specimenConvert = 3;
+    int hang = 4;
+    int firstTime = 5;
 
 
     // Status of Robot Actions
@@ -53,10 +56,6 @@ public class TeamB_OpMode_Meet3 extends LinearOpMode {
     int[]array_rotate_intakeup=new int[]{0, 100       , 85         , 70        , 60        , 52        , 44        , 38        , 32        , 28        , 24        , 20        , 18        , 16        , 14         };
     int[] array_rotate    = new int[]   {0, -100      , -85        , -70       , -60       , -52       , -44       , -38       , -32       , -28       , -24       , -20       , -18       , -16       , -14        };
     double[] array_extend = new double[]{0, 1.26      , 1.22       , 1.18      , 1.14      , 1.10      , 1.06      , 1.02      , 1.02      , 1.02      , 1.01      , 1.01      , 1.01      , 1.01      , 1.01       };
-
-//    double[] array_arm    = new double[]{0, 0.63-0.18 , 0.63-0.18  , 0.63-0.18 , 0.63-0.185, 0.63-0.185, 0.63-0.185, 0.63-0.19 , 0.63-0.19 , 0.63-0.19 , 0.63-0.19 , 0.63-0.195, 0.63-0.195, 0.63-0.195, 0.63-0.195 };
-//    int[] array_rotate    = new int[]   {0, -120      , -105       , -90       , -80       , -72       , -64       , -58       , -52       , -48       , -44       , -40       , -38       , -36       , -34        };
-//    double[] array_extend = new double[]{0, 1.26      , 1.22       , 1.18      , 1.14      , 1.10      , 1.06      , 1.02      , 1.02      , 1.02      , 1.01      , 1.01      , 1.01      , 1.01      , 1.01       };
 
 
     // extend linear slide variable
@@ -168,7 +167,7 @@ public class TeamB_OpMode_Meet3 extends LinearOpMode {
         backLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        // Set positions of motors/servos and move it.
+        // Set positions of motors/servos
         extendSlide_target_position = extendSlide_rest_position;
         extendSlide_target_speed = 0;
         rotateSlide_target_position = rotateSlide_rest_position;
@@ -178,22 +177,18 @@ public class TeamB_OpMode_Meet3 extends LinearOpMode {
         hand_rotate_target = hand_perpendicular;
         arm_rotate_target = arm_down;
 
+        // move the motors/servos
         extendSlideMotor.setVelocity(extendSlide_target_speed);
         extendSlideMotor.setTargetPosition(extendSlide_target_position);
 
-        // commiting it should stop the robot from moving, idk, tim told me to comment it idk idk idk...
         rotateSlideMotor.setVelocity(rotateSlide_target_speed);
         rotateSlideMotor.setTargetPosition(rotateSlide_target_position);
 
-        sleep(1000);
+        sleep(500);
 
         grabServo.setPower(grab_rotate_power);
         handServo.setPosition(hand_rotate_target);
         armServo.setPosition(arm_rotate_target);
-
-        // to assume your specimen pre load?
-        //state = State.OUTTAKE;
-        //flag[specimen] = true;
 
         // to prevent the robot from moving, idk
         rotateSlide_target_speed = 0;
@@ -204,8 +199,13 @@ public class TeamB_OpMode_Meet3 extends LinearOpMode {
 
         if (isStopRequested()) return;
 
-        state = State.INTAKE;
 
+        // State you start at
+        // flag[specimen] = false;// automaticlly false so its sample intak
+        state = State.IDLE;
+
+
+        // While running
         while (opModeIsActive()) {
 
             // drive the robot
@@ -217,13 +217,37 @@ public class TeamB_OpMode_Meet3 extends LinearOpMode {
             }
 
             switch (state) {
-                case INTAKE:
+                case IDLE:
 
-                    drive_factor = 1;
+                    if (flag[firstTime]){
+                        drive_factor = 1;
+                        setIdle();// set slowly go to IDLE position
+                        flag[firstTime] = false;
+                    }
 
                     if (gamepad2.options && timera(400, specimen)) {
                         flag[specimen] = !flag[specimen];
                         timera(0, specimen);
+                    }
+
+                    // change if need to go to intake sample first for specimen
+                    if (gamepad2.dpad_up && timera(400, specimenConvert)){
+                        flag[specimenConvert] = !flag[specimenConvert];
+                        timera(0, specimenConvert);
+                    }
+
+                    if (gamepad2.right_bumper){
+                        state = State.INTAKE;
+                    }
+
+
+                    break;
+
+                case INTAKE:
+
+                    if (gamepad2.left_bumper){
+                        state = State.IDLE;
+                        flag[firstTime] = true;
                     }
 
                     if (!flag[specimen]) {
@@ -238,7 +262,7 @@ public class TeamB_OpMode_Meet3 extends LinearOpMode {
                             state = State.LIFT;
                         }
                     }// sample intake end
-                    else if (flag[specimen]) {
+                    else if (flag[specimen] && !flag[specimenConvert]) {
 
                         if (gamepad2.left_bumper) {
                             preintake_specimen();
@@ -246,11 +270,51 @@ public class TeamB_OpMode_Meet3 extends LinearOpMode {
                         if (gamepad2.right_bumper) {
                             grabSpecimen();
                             drive_factor = 1;
-                            state = State.OUTTAKE;
+                            state = State.CONVERT;
                         }
                     }// specimen intake end
+                    else if (flag[specimen] && flag[specimenConvert]) {
+
+                        if (gamepad2.left_bumper || flag[preintake]) {
+                            preintake_sample();
+                        }
+                        if (gamepad2.left_stick_x != 0 || gamepad2.right_stick_y != 0 || gamepad2.left_stick_y != 0 || gamepad2.right_stick_x != 0 || sampleIntake_Position != currentSampleIntake_Position) {
+                            adjustSampleIntake(gamepad2.left_stick_x, gamepad2.right_stick_y, sampleIntake_Position);
+                        }
+                        if (gamepad2.right_bumper) {
+                            grabSample();
+                            state = State.CONVERT;
+                        }
+                    }// sample intake for specimen convert end
+
                     break;
-                case LIFT:
+
+
+                case CONVERT:// only for specimen
+
+                    if (gamepad2.left_bumper){
+                        state = State.INTAKE;
+                        flag[firstTime] = true;
+                    }
+
+                    if (gamepad2.dpad_down){
+                        dropSample();
+                    }
+                    if (gamepad2.dpad_up) {
+                        grabSpecimen();
+                    }
+                    if (gamepad2.right_bumper){
+                        state = State.OUTTAKE;
+                    }
+
+                    break;
+
+                case LIFT:// only for sample
+
+                    if (gamepad2.left_bumper){
+                        state = State.INTAKE;
+                        flag[firstTime] = true;
+                    }
 
                     if (gamepad1.right_bumper) {
                         sampleLift();
@@ -264,7 +328,14 @@ public class TeamB_OpMode_Meet3 extends LinearOpMode {
                         state = State.INTAKE;
                     }
                     break;
+
+
                 case OUTTAKE:
+
+                    if (gamepad2.left_bumper){
+                        state = State.INTAKE;
+                        flag[firstTime] = true;
+                    }
 
                     if (!flag[specimen]) {
 
@@ -278,22 +349,25 @@ public class TeamB_OpMode_Meet3 extends LinearOpMode {
                             move_extendSlide(extend_postintake_position, 6000);
                             sleep(2000);
                             move_rotateSlide(rotateSlide_rest_position, 2000);
-                            state = State.INTAKE;
+                            state = State.IDLE;
                         }
                     } // if sample outtake end
                     else if (flag[specimen]) {
                         if (gamepad2.left_bumper) {
                             intake_drop_specimen();
-                            state = State.INTAKE;
+                            state = State.IDLE;
                         }
                         if (gamepad2.right_bumper) {
                             specimenScore();
                             intake_drop_specimen();
-                            state = State.INTAKE;
+                            state = State.IDLE;
                         }
                     } // if specimen outtake end
+
+
                     break;
-            }// states of robot end
+            }// switch end
+
 
             // hang
             if (gamepad1.dpad_up || flag[hang]) {
@@ -409,6 +483,12 @@ public class TeamB_OpMode_Meet3 extends LinearOpMode {
     }// intake outtake end
 
     // For intake outtake functions
+    public void setIdle(){
+
+        moveAllSlide(rotateSlide_rest_position, extendSlide_rest_position,0);
+        moveAllServo(grab_rest, hand_perpendicular, arm_down, 0);
+    }
+
     // Sample
     public void preintake_sample() {
         if (!flag[preintake]) {
@@ -490,14 +570,14 @@ public class TeamB_OpMode_Meet3 extends LinearOpMode {
     public void grabSpecimen() {
 
         move_grabServo(grab_intakePower);
-        moveDrive(0.15);
-        sleep(600);
+        moveDrive(0.2);
+        sleep(750);
         stopDrive();
         moveAllServo(grab_rest, hand_perpendicular, arm_down, 0);
         moveAllSlide(rotate_specimenHigh, extend_specimenHigh, 0);
-        sleep(500);
+        sleep(450);
         moveDrive(-0.3);
-        sleep(600);
+        sleep(500);
         stopDrive();
 
     }// grab specimen end
@@ -506,6 +586,16 @@ public class TeamB_OpMode_Meet3 extends LinearOpMode {
 
         preintake_specimen();
     }// intake drop specimen end
+
+    public void dropSample() {
+
+        moveAllSlide(rotateSlide_rest_position, extendSlide_rest_position, 0);
+        sleep(100);
+        move_grabServo(grab_outtakePower);
+        sleep(300);
+        move_grabServo(grab_rest);
+
+    }// dropSample end
 
     public void specimenScore() {
 
@@ -653,6 +743,7 @@ public class TeamB_OpMode_Meet3 extends LinearOpMode {
         telemetry.addData("Elapsed time: ", runtime);
         telemetry.addData("Enum State", state);
         telemetry.addData("Specimens?", flag[specimen]);
+        telemetry.addData("Specimen Convert?", flag[specimenConvert]);
         telemetry.addLine();
         telemetry.addData("Intake Position", sampleIntake_Position);
         telemetry.addData("Current Intake Position", currentSampleIntake_Position);
