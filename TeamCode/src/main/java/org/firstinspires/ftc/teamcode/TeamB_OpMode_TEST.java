@@ -589,12 +589,13 @@ public class TeamB_OpMode_TEST extends LinearOpMode {
 
     public void dropSample() {
 
+        moveAllSlide(rotateSlide_rest_position, extendSlide_rest_position, 0);
+        sleep(100);
+        move_grabServo(grab_outtakePower);
+        sleep(300);
+        move_grabServo(grab_rest);
+
     }// dropSample end
-
-    public void pickupSpecimen() {
-
-
-    }// pickupSpecimen end
 
     public void specimenScore() {
 
