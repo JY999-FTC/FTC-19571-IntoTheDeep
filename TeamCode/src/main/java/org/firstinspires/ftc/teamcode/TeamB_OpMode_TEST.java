@@ -245,6 +245,8 @@ public class TeamB_OpMode_TEST extends LinearOpMode {
 
                 case INTAKE:
 
+                    drive_factor = 0.8;
+
                     if (gamepad2.left_bumper){
                         state = State.IDLE;
                         flag[firstTime] = true;
@@ -311,6 +313,7 @@ public class TeamB_OpMode_TEST extends LinearOpMode {
 
                 case LIFT:// only for sample
 
+
                     if (gamepad2.left_bumper){
                         state = State.INTAKE;
                         flag[firstTime] = true;
@@ -318,7 +321,7 @@ public class TeamB_OpMode_TEST extends LinearOpMode {
 
                     if (gamepad1.right_bumper) {
                         sampleLift();
-                        drive_factor = 0.4;
+                        drive_factor = 0.5;
                     }
                     if (extendSlideMotor.getCurrentPosition() > 9000) {
                         state = State.OUTTAKE;
@@ -331,6 +334,8 @@ public class TeamB_OpMode_TEST extends LinearOpMode {
 
 
                 case OUTTAKE:
+
+                    drive_factor = 0.5;
 
                     if (gamepad2.left_bumper){
                         state = State.INTAKE;
